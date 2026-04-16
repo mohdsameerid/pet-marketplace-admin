@@ -7,6 +7,7 @@ import {
   Store,
   LogOut,
   PawPrint,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,9 +20,11 @@ interface NavItem {
 
 interface SidebarProps {
   pendingCount?: number;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ pendingCount = 0 }: SidebarProps) {
+export default function Sidebar({ pendingCount = 0, isOpen = false, onClose }: SidebarProps) {
   const { logout } = useAuth();
 
   const navItems: NavItem[] = [
@@ -33,14 +36,31 @@ export default function Sidebar({ pendingCount = 0 }: SidebarProps) {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col z-40">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-6 py-5 border-b border-gray-700">
-        <PawPrint className="w-7 h-7 text-blue-400" />
-        <div>
-          <p className="font-bold text-sm leading-tight">PetMarketplace</p>
-          <p className="text-xs text-gray-400">Admin Panel</p>
+    <aside
+      className={`
+        fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col z-40
+        transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}
+    >
+      {/* Logo + mobile close button */}
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <PawPrint className="w-7 h-7 text-blue-400 flex-shrink-0" />
+          <div>
+            <p className="font-bold text-sm leading-tight">PetMarketplace</p>
+            <p className="text-xs text-gray-400">Admin Panel</p>
+          </div>
         </div>
+        {/* Close button — only shown on mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          aria-label="Close sidebar"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav */}
