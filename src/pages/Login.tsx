@@ -24,7 +24,7 @@ export default function Login() {
         toast.error(message ?? 'Login failed');
         return;
       }
-      if (data.user.role !== 'Admin') {
+      if (data.role !== 'Admin') {
         toast.error('Access denied. Admin only.');
         return;
       }
