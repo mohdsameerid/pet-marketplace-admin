@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Check, X, Clock, AlertCircle } from 'lucide-react';
+import { Check, X, Clock, CheckCircle } from 'lucide-react';
 import { getPendingListings, approveListing, rejectListing } from '../api/admin';
 import type { AdminListing } from '../types';
+import { extractApiError } from '../utils/apiError';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
@@ -49,7 +50,7 @@ export default function PendingListings() {
           setHasPreviousPage(d.hasPreviousPage);
         }
       })
-      .catch(() => toast.error('Failed to load pending listings'))
+      .catch((err) => toast.error(extractApiError(err, 'Failed to load pending listings')))
       .finally(() => setLoading(false));
   };
 
@@ -64,8 +65,8 @@ export default function PendingListings() {
       await approveListing(id);
       toast.success('Listing approved');
       fetchListings();
-    } catch {
-      toast.error('Failed to approve listing');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to approve listing'));
     } finally {
       setApproving(null);
     }
@@ -90,8 +91,8 @@ export default function PendingListings() {
       toast.success('Listing rejected');
       closeRejectModal();
       fetchListings();
-    } catch {
-      toast.error('Failed to reject listing');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to reject listing'));
       setRejectModal((s) => ({ ...s, isSubmitting: false }));
     }
   };
@@ -119,13 +120,14 @@ export default function PendingListings() {
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Spinner size="lg" />
+            <p className="text-sm text-gray-400">Loading pending listings…</p>
           </div>
         ) : listings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-gray-500">
-            <AlertCircle className="w-8 h-8 text-gray-300" />
-            <p>No pending listings</p>
+          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+            <CheckCircle className="w-10 h-10 text-green-200" />
+            <p className="text-sm font-medium">No pending listings — all caught up!</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

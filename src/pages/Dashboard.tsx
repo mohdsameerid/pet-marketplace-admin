@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { getDashboardStats } from '../api/admin';
 import type { DashboardStats } from '../types';
+import { extractApiError } from '../utils/apiError';
 import StatCard from '../components/ui/StatCard';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
@@ -21,16 +22,19 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const fetchStats = () => {
+  const fetchStats = async () => {
     setLoading(true);
     setError('');
-    getDashboardStats()
-      .then((res) => {
-        if (res.data.success) setStats(res.data.data);
-        else setError('Failed to load dashboard stats');
-      })
-      .catch(() => setError('Failed to load dashboard stats'))
-      .finally(() => setLoading(false));
+    try {
+      const res = await getDashboardStats();
+      if (res.data.success) {
+        setStats(res.data.data);
+      } else {
+        setError('Failed to load dashboard stats');
+      }
+    } catch (err) {
+      setError(extractApiError(err, 'Failed to load dashboard stats'));
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {

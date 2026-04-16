@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { AlertCircle, Search } from 'lucide-react';
+import { Search, Users as UsersIcon } from 'lucide-react';
 import { getAllUsers, banUser, unbanUser } from '../api/admin';
 import type { AdminUser } from '../types';
+import { extractApiError } from '../utils/apiError';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const ROLE_OPTIONS = [
   { label: 'All', value: '' },
@@ -22,11 +24,19 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    user: AdminUser | null;
+    isLoading: boolean;
+  }>({ isOpen: false, user: null, isLoading: false });
 
   const fetchUsers = (page = pageNumber, role = roleFilter) => {
     setLoading(true);
@@ -35,12 +45,13 @@ export default function Users() {
         if (res.data.success) {
           const d = res.data.data;
           setUsers(d.items);
+          setTotalCount(d.totalCount);
           setTotalPages(d.totalPages);
           setHasNextPage(d.hasNextPage);
           setHasPreviousPage(d.hasPreviousPage);
         }
       })
-      .catch(() => toast.error('Failed to load users'))
+      .catch((err) => toast.error(extractApiError(err, 'Failed to load users')))
       .finally(() => setLoading(false));
   };
 
@@ -64,21 +75,23 @@ export default function Users() {
     );
   }, [users, search]);
 
-  const handleBan = async (user: AdminUser) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to ban ${user.fullName}?`
-    );
-    if (!confirmed) return;
+  // Ban — opens confirm dialog
+  const openBanConfirm = (user: AdminUser) => {
+    setConfirmDialog({ isOpen: true, user, isLoading: false });
+  };
 
-    setActionLoading(user.id + 'ban');
+  const handleBanConfirmed = async () => {
+    const user = confirmDialog.user;
+    if (!user) return;
+    setConfirmDialog((s) => ({ ...s, isLoading: true }));
     try {
       await banUser(user.id);
       toast.success(`${user.fullName} has been banned`);
+      setConfirmDialog({ isOpen: false, user: null, isLoading: false });
       fetchUsers();
-    } catch {
-      toast.error('Failed to ban user');
-    } finally {
-      setActionLoading(null);
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to ban user'));
+      setConfirmDialog((s) => ({ ...s, isLoading: false }));
     }
   };
 
@@ -88,8 +101,8 @@ export default function Users() {
       await unbanUser(user.id);
       toast.success(`${user.fullName} has been unbanned`);
       fetchUsers();
-    } catch {
-      toast.error('Failed to unban user');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to unban user'));
     } finally {
       setActionLoading(null);
     }
@@ -141,133 +154,152 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table card */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Spinner size="lg" />
+            <p className="text-sm text-gray-400">Loading users…</p>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-gray-500">
-            <AlertCircle className="w-8 h-8 text-gray-300" />
-            <p>{search ? 'No users match your search' : 'No users found'}</p>
+          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+            <UsersIcon className="w-10 h-10 text-gray-200" />
+            <p className="text-sm font-medium">
+              {search ? 'No users match your search' : 'No users found'}
+            </p>
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {[
-                    'Full Name',
-                    'Email',
-                    'Phone',
-                    'City',
-                    'Role',
-                    'Verified',
-                    'Banned',
-                    'Listings',
-                    'Joined',
-                    'Actions',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
+          <>
+            <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              {search
+                ? `${filteredUsers.length} result${filteredUsers.length !== 1 ? 's' : ''} for "${search}" (this page)`
+                : `${totalCount} user${totalCount !== 1 ? 's' : ''} total`}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {[
+                      'Full Name',
+                      'Email',
+                      'Phone',
+                      'City',
+                      'Role',
+                      'Verified',
+                      'Banned',
+                      'Listings',
+                      'Joined',
+                      'Actions',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className={`transition-colors ${
+                        user.isBanned
+                          ? 'bg-red-50 hover:bg-red-100/70'
+                          : 'hover:bg-gray-50'
+                      }`}
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={`transition-colors ${
-                      user.isBanned
-                        ? 'bg-red-50 hover:bg-red-100'
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                      {user.fullName}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 max-w-[180px]">
-                      <span className="block truncate">{user.email}</span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {user.phoneNumber ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {user.city ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={roleBadgeVariant(user.role)}>
-                        {user.role}
-                      </Badge>
-                    </td>
-                    {/* Verified — only meaningful for Sellers */}
-                    <td className="px-4 py-3">
-                      {user.role === 'Seller' ? (
-                        <Badge variant={user.isVerified ? 'success' : 'default'}>
-                          {user.isVerified ? 'Verified' : 'Unverified'}
+                      <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                        {user.fullName}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 max-w-[180px]">
+                        <span className="block truncate" title={user.email}>
+                          {user.email}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        {user.phoneNumber ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        {user.city ?? '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={roleBadgeVariant(user.role)}>
+                          {user.role}
                         </Badge>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    {/* Banned */}
-                    <td className="px-4 py-3">
-                      {user.isBanned ? (
-                        <Badge variant="danger">Banned</Badge>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    {/* Listings — only for Sellers */}
-                    <td className="px-4 py-3 text-center text-gray-600">
-                      {user.role === 'Seller' ? user.totalListings : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {formatDate(user.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {!user.isBanned && (
-                          <div
-                            title={
-                              user.role === 'Admin'
-                                ? 'Cannot ban Admin users'
-                                : undefined
-                            }
-                          >
+                      </td>
+                      {/* Verified — only meaningful for Sellers */}
+                      <td className="px-4 py-3">
+                        {user.role === 'Seller' ? (
+                          <Badge variant={user.isVerified ? 'success' : 'default'}>
+                            {user.isVerified ? 'Verified' : 'Unverified'}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      {/* Banned */}
+                      <td className="px-4 py-3">
+                        {user.isBanned ? (
+                          <Badge variant="danger">Banned</Badge>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      {/* Listings — only for Sellers */}
+                      <td className="px-4 py-3 text-center text-gray-600">
+                        {user.role === 'Seller' ? user.totalListings : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {!user.isBanned && (
+                            <span
+                              title={
+                                user.role === 'Admin'
+                                  ? 'Cannot ban Admin users'
+                                  : undefined
+                              }
+                            >
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                disabled={user.role === 'Admin'}
+                                onClick={() => openBanConfirm(user)}
+                              >
+                                Ban
+                              </Button>
+                            </span>
+                          )}
+                          {user.isBanned && (
                             <Button
                               size="sm"
-                              variant="danger"
-                              isLoading={actionLoading === user.id + 'ban'}
-                              disabled={user.role === 'Admin'}
-                              onClick={() => handleBan(user)}
+                              variant="secondary"
+                              isLoading={actionLoading === user.id + 'unban'}
+                              onClick={() => handleUnban(user)}
                             >
-                              Ban
+                              Unban
                             </Button>
-                          </div>
-                        )}
-                        {user.isBanned && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            isLoading={actionLoading === user.id + 'unban'}
-                            onClick={() => handleUnban(user)}
-                          >
-                            Unban
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <Pagination
@@ -278,6 +310,24 @@ export default function Users() {
           onPageChange={setPageNumber}
         />
       </div>
+
+      {/* Ban confirm dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Ban User"
+        message={
+          confirmDialog.user
+            ? `Are you sure you want to ban ${confirmDialog.user.fullName}? They will no longer be able to access the platform.`
+            : ''
+        }
+        confirmLabel="Ban User"
+        isLoading={confirmDialog.isLoading}
+        onConfirm={handleBanConfirmed}
+        onCancel={() =>
+          !confirmDialog.isLoading &&
+          setConfirmDialog({ isOpen: false, user: null, isLoading: false })
+        }
+      />
     </div>
   );
 }
