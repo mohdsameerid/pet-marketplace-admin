@@ -45,7 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (data: LoginResponse) => {
     localStorage.setItem('adminToken', data.token);
     setToken(data.token);
-    setUser(data.user);
+    // API returns user fields + token at the same level
+    setUser({ id: data.id, fullName: data.fullName, email: data.email, role: data.role });
   };
 
   const logout = () => {

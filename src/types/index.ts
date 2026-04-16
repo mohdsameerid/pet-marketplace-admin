@@ -74,7 +74,12 @@ export interface AuthUser {
   role: UserRole;
 }
 
+// Actual shape returned by POST /api/auth/login — token + user fields at the same level
 export interface LoginResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  isVerified: boolean;
   token: string;
-  user: AuthUser;
 }
