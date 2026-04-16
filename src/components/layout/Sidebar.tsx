@@ -16,6 +16,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: number;
+  end?: boolean;
 }
 
 interface SidebarProps {
@@ -29,8 +30,8 @@ export default function Sidebar({ pendingCount = 0, isOpen = false, onClose }: S
 
   const navItems: NavItem[] = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/listings', label: 'All Listings', icon: List },
-    { to: '/listings/pending', label: 'Pending Approval', icon: Clock, badge: pendingCount },
+    { to: '/listings', label: 'All Listings', icon: List, end: true },
+    { to: '/listings/pending', label: 'Pending Approval', icon: Clock, badge: pendingCount, end: true },
     { to: '/users', label: 'Users', icon: Users },
     { to: '/sellers', label: 'Sellers', icon: Store },
   ];
@@ -65,11 +66,11 @@ export default function Sidebar({ pendingCount = 0, isOpen = false, onClose }: S
 
       {/* Nav */}
       <nav className="flex-1 px-4 py-4 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon, badge }) => (
+        {navItems.map(({ to, label, icon: Icon, badge, end }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={end}
             className={({ isActive }) =>
               `flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors ${
                 isActive
