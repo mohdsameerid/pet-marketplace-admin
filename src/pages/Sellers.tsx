@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { AlertCircle, Search, ShieldCheck } from 'lucide-react';
+import { Store, Search, ShieldCheck } from 'lucide-react';
 import { getAllUsers, verifySeller, banUser, unbanUser } from '../api/admin';
 import type { AdminUser } from '../types';
+import { extractApiError } from '../utils/apiError';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
@@ -32,7 +33,7 @@ export default function Sellers() {
           setHasPreviousPage(d.hasPreviousPage);
         }
       })
-      .catch(() => toast.error('Failed to load sellers'))
+      .catch((err) => toast.error(extractApiError(err, 'Failed to load sellers')))
       .finally(() => setLoading(false));
   };
 
@@ -57,8 +58,8 @@ export default function Sellers() {
       await verifySeller(seller.id);
       toast.success('Seller verified successfully');
       fetchSellers();
-    } catch {
-      toast.error('Failed to verify seller');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to verify seller'));
     } finally {
       setActionLoading(null);
     }
@@ -70,8 +71,8 @@ export default function Sellers() {
       await banUser(seller.id);
       toast.success(`${seller.fullName} has been banned`);
       fetchSellers();
-    } catch {
-      toast.error('Failed to ban seller');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to ban seller'));
     } finally {
       setActionLoading(null);
     }
@@ -83,8 +84,8 @@ export default function Sellers() {
       await unbanUser(seller.id);
       toast.success(`${seller.fullName} has been unbanned`);
       fetchSellers();
-    } catch {
-      toast.error('Failed to unban seller');
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to unban seller'));
     } finally {
       setActionLoading(null);
     }
@@ -119,13 +120,24 @@ export default function Sellers() {
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Spinner size="lg" />
+            <p className="text-sm text-gray-400">Loading sellers…</p>
           </div>
         ) : filteredSellers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-gray-500">
-            <AlertCircle className="w-8 h-8 text-gray-300" />
-            <p>{search ? 'No sellers match your search' : 'No sellers found'}</p>
+          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+            <Store className="w-10 h-10 text-gray-200" />
+            <p className="text-sm font-medium">
+              {search ? 'No sellers match your search' : 'No sellers found'}
+            </p>
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

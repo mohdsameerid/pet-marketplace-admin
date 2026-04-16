@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { PawPrint } from 'lucide-react';
 import { login as loginApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import { extractApiError } from '../utils/apiError';
 import Button from '../components/ui/Button';
 
 export default function Login() {
@@ -29,9 +30,8 @@ export default function Login() {
       }
       login(data);
       navigate('/');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Login failed. Please try again.';
-      toast.error(msg);
+    } catch (err) {
+      toast.error(extractApiError(err, 'Login failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
