@@ -77,7 +77,7 @@ export default function Dashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Users</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <StatCard icon={Users} label="Total Users" value={stats.totalUsers} />
+          <StatCard icon={Users} label="Total Users" value={stats.totalUsers - 1} />
           <StatCard icon={ShoppingBag} label="Buyers" value={stats.totalBuyers} iconColor="text-purple-600" bgColor="bg-purple-50" />
           <StatCard icon={Star} label="Sellers" value={stats.totalSellers} iconColor="text-orange-600" bgColor="bg-orange-50" />
           <StatCard icon={CheckCircle} label="Verified Sellers" value={stats.verifiedSellers} iconColor="text-green-600" bgColor="bg-green-50" />
