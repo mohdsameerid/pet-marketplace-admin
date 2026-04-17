@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from '../utils/toast';
 import { Store, Search, ShieldCheck } from 'lucide-react';
-import { getAllUsers, verifySeller, banUser, unbanUser } from '../api/admin';
+import { getAllUsers, verifyUser, banUser, unbanUser } from '../api/admin';
 import type { AdminUser } from '../types';
 import { extractApiError } from '../utils/apiError';
 import Badge from '../components/ui/Badge';
@@ -55,7 +55,7 @@ export default function Sellers() {
   const handleVerify = async (seller: AdminUser) => {
     setActionLoading(seller.id + 'verify');
     try {
-      await verifySeller(seller.id);
+      await verifyUser(seller.id);
       toast.success('Seller verified successfully');
       fetchSellers();
     } catch (err) {

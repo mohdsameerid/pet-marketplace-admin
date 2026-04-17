@@ -72,10 +72,9 @@ export default function Sidebar({ pendingCount = 0, isOpen = false, onClose }: S
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              `flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors ${isActive
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`
             }
           >
@@ -96,7 +95,7 @@ export default function Sidebar({ pendingCount = 0, isOpen = false, onClose }: S
       <div className="px-4 py-4 border-t border-gray-700">
         <button
           onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           Logout
