@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from '../utils/toast';
 import { Store, Search, ShieldCheck } from 'lucide-react';
 import { getAllUsers, verifySeller, banUser, unbanUser } from '../api/admin';
 import type { AdminUser } from '../types';

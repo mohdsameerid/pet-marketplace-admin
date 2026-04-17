@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { Search, Users as UsersIcon } from 'lucide-react';
-import { getAllUsers, banUser, unbanUser } from '../api/admin';
+import { toast } from '../utils/toast';
+import { Search, Users as UsersIcon, Pencil } from 'lucide-react';
+import { getAllUsers, banUser, unbanUser, updateUser } from '../api/admin';
+import type { UpdateUserPayload } from '../api/admin';
 import type { AdminUser } from '../types';
 import { extractApiError } from '../utils/apiError';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
+import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const ROLE_OPTIONS = [
@@ -18,6 +20,28 @@ const ROLE_OPTIONS = [
 ];
 
 const PAGE_SIZE = 10;
+
+interface EditForm {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  city: string;
+}
+
+interface EditModalState {
+  isOpen: boolean;
+  user: AdminUser | null;
+  form: EditForm;
+  errors: Partial<EditForm>;
+  isSubmitting: boolean;
+}
+
+const emptyForm: EditForm = {
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  city: '',
+};
 
 export default function Users() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -31,7 +55,16 @@ export default function Users() {
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Confirm dialog state
+  // Edit modal
+  const [editModal, setEditModal] = useState<EditModalState>({
+    isOpen: false,
+    user: null,
+    form: emptyForm,
+    errors: {},
+    isSubmitting: false,
+  });
+
+  // Ban confirm dialog
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     user: AdminUser | null;
@@ -75,10 +108,75 @@ export default function Users() {
     );
   }, [users, search]);
 
-  // Ban — opens confirm dialog
-  const openBanConfirm = (user: AdminUser) => {
-    setConfirmDialog({ isOpen: true, user, isLoading: false });
+  // ── Edit modal ────────────────────────────────────────────
+  const openEdit = (user: AdminUser) => {
+    setEditModal({
+      isOpen: true,
+      user,
+      form: {
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber ?? '',
+        city: user.city ?? '',
+      },
+      errors: {},
+      isSubmitting: false,
+    });
   };
+
+  const closeEdit = () => {
+    if (editModal.isSubmitting) return;
+    setEditModal((s) => ({ ...s, isOpen: false }));
+  };
+
+  const setField = (field: keyof EditForm, value: string) => {
+    setEditModal((s) => ({
+      ...s,
+      form: { ...s.form, [field]: value },
+      errors: { ...s.errors, [field]: undefined },
+    }));
+  };
+
+  const validateForm = (form: EditForm): Partial<EditForm> => {
+    const errs: Partial<EditForm> = {};
+    if (!form.fullName.trim()) errs.fullName = 'Full name is required';
+    if (!form.email.trim()) errs.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      errs.email = 'Enter a valid email address';
+    return errs;
+  };
+
+  const handleEditSubmit = async () => {
+    const errs = validateForm(editModal.form);
+    if (Object.keys(errs).length > 0) {
+      setEditModal((s) => ({ ...s, errors: errs }));
+      return;
+    }
+
+    setEditModal((s) => ({ ...s, isSubmitting: true }));
+
+    const payload: UpdateUserPayload = {
+      fullName: editModal.form.fullName.trim(),
+      email: editModal.form.email.trim(),
+      phoneNumber: editModal.form.phoneNumber.trim() || undefined,
+      city: editModal.form.city.trim() || undefined,
+      role: editModal.user!.role,
+    };
+
+    try {
+      await updateUser(editModal.user!.id, payload);
+      toast.success('User updated successfully');
+      setEditModal((s) => ({ ...s, isOpen: false }));
+      fetchUsers();
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to update user'));
+      setEditModal((s) => ({ ...s, isSubmitting: false }));
+    }
+  };
+
+  // ── Ban / Unban ───────────────────────────────────────────
+  const openBanConfirm = (user: AdminUser) =>
+    setConfirmDialog({ isOpen: true, user, isLoading: false });
 
   const handleBanConfirmed = async () => {
     const user = confirmDialog.user;
@@ -121,6 +219,8 @@ export default function Users() {
     return 'default' as const;
   };
 
+  const { form, errors } = editModal;
+
   return (
     <div className="space-y-4">
       {/* Filter + Search bar */}
@@ -131,11 +231,10 @@ export default function Users() {
             <button
               key={opt.value}
               onClick={() => handleRoleFilter(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                roleFilter === opt.value
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${roleFilter === opt.value
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
             >
               {opt.label}
             </button>
@@ -154,7 +253,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Table card */}
+      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -212,11 +311,10 @@ export default function Users() {
                   {filteredUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className={`transition-colors ${
-                        user.isBanned
-                          ? 'bg-red-50 hover:bg-red-100/70'
-                          : 'hover:bg-gray-50'
-                      }`}
+                      className={`transition-colors ${user.isBanned
+                        ? 'bg-red-50 hover:bg-red-100/70'
+                        : 'hover:bg-gray-50'
+                        }`}
                     >
                       <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                         {user.fullName}
@@ -237,7 +335,6 @@ export default function Users() {
                           {user.role}
                         </Badge>
                       </td>
-                      {/* Verified — only meaningful for Sellers */}
                       <td className="px-4 py-3">
                         {user.role === 'Seller' ? (
                           <Badge variant={user.isVerified ? 'success' : 'default'}>
@@ -247,7 +344,6 @@ export default function Users() {
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
-                      {/* Banned */}
                       <td className="px-4 py-3">
                         {user.isBanned ? (
                           <Badge variant="danger">Banned</Badge>
@@ -255,7 +351,6 @@ export default function Users() {
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
-                      {/* Listings — only for Sellers */}
                       <td className="px-4 py-3 text-center text-gray-600">
                         {user.role === 'Seller' ? user.totalListings : '—'}
                       </td>
@@ -264,6 +359,17 @@ export default function Users() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
+                          {/* Edit */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEdit(user)}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </Button>
+
+                          {/* Ban / Unban */}
                           {!user.isBanned && (
                             <span
                               title={
@@ -310,6 +416,95 @@ export default function Users() {
           onPageChange={setPageNumber}
         />
       </div>
+
+      {/* ── Edit User Modal ── */}
+      <Modal
+        isOpen={editModal.isOpen}
+        onClose={closeEdit}
+        title={`Edit User — ${editModal.user?.fullName ?? ''}`}
+      >
+        <div className="space-y-4">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.fullName}
+              onChange={(e) => setField('fullName', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.fullName ? 'border-red-400' : 'border-gray-300'
+                }`}
+              placeholder="John Doe"
+            />
+            {errors.fullName && (
+              <p className="text-xs text-red-600 mt-1">{errors.fullName}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setField('email', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-400' : 'border-gray-300'
+                }`}
+              placeholder="user@example.com"
+              disabled={true}
+            />
+            {errors.email && (
+              <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+            )}
+            <p className="text-xs text-yellow-600 mt-1">{"You can not change the email address"}</p>
+          </div>
+
+          {/* Phone + City side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={form.phoneNumber}
+                onChange={(e) => setField('phoneNumber', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="+91 98765 43210"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                City
+              </label>
+              <input
+                type="text"
+                value={form.city}
+                onChange={(e) => setField('city', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Mumbai"
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="outline" onClick={closeEdit} disabled={editModal.isSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              isLoading={editModal.isSubmitting}
+              onClick={handleEditSubmit}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Ban confirm dialog */}
       <ConfirmDialog
