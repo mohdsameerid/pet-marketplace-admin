@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from '../utils/toast';
 import { Check, X, Clock, CheckCircle } from 'lucide-react';
 import { getPendingListings, approveListing, rejectListing } from '../api/admin';
 import type { AdminListing } from '../types';

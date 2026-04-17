@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from '../utils/toast';
 import { Search, Users as UsersIcon, Pencil } from 'lucide-react';
 import { getAllUsers, banUser, unbanUser, updateUser } from '../api/admin';
 import type { UpdateUserPayload } from '../api/admin';

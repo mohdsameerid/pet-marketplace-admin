@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from '../utils/toast';
 import { PawPrint } from 'lucide-react';
 import { login as loginApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,7 @@ export default function Login() {
       }
       login(data);
       navigate('/');
+      toast.success('Login in successfully!');
     } catch (err) {
       toast.error(extractApiError(err, 'Login failed. Please try again.'));
     } finally {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMe } from '../api/auth';
+import { toast } from '../utils/toast';
 import type { AuthUser, LoginResponse } from '../types';
 
 interface AuthContextValue {
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('adminToken');
     setToken(null);
     setUser(null);
+    toast.success('Logged out successfully');
     navigate('/login');
   };
 

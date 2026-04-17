@@ -56,7 +56,38 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          gutter={8}
+          toastOptions={{
+            duration: 4000,
+            style: {
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              maxWidth: '380px',
+            },
+            success: {
+              style: {
+                background: '#f0fdf4',
+                color: '#15803d',
+                border: '1px solid #bbf7d0',
+              },
+              iconTheme: { primary: '#16a34a', secondary: '#f0fdf4' },
+            },
+            error: {
+              duration: 5000,
+              style: {
+                background: '#fef2f2',
+                color: '#b91c1c',
+                border: '1px solid #fecaca',
+              },
+              iconTheme: { primary: '#dc2626', secondary: '#fef2f2' },
+            },
+          }}
+        />
       </AuthProvider>
     </BrowserRouter>
   );
