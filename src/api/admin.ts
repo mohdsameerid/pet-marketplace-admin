@@ -21,15 +21,26 @@ export const rejectListing = (id: string, reason: string) =>
   client.post<ApiResponse<null>>(`/api/admin/listings/${id}/reject`, { reason });
 
 export const getAllUsers = (pageNumber: number, pageSize: number, role?: string) =>
-  client.get<ApiResponse<PagedResult<AdminUser>>>('/api/admin/users', {
+  client.get<ApiResponse<PagedResult<AdminUser>>>('/api/users', {
     params: { pageNumber, pageSize, ...(role ? { role } : {}) },
   });
 
+export interface UpdateUserPayload {
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  city?: string;
+  role: string;
+}
+
+export const updateUser = (id: string, payload: UpdateUserPayload) =>
+  client.put<ApiResponse<AdminUser>>(`/api/users/${id}`, payload);
+
 export const verifySeller = (id: string) =>
-  client.post<ApiResponse<null>>(`/api/admin/users/${id}/verify-seller`);
+  client.post<ApiResponse<null>>(`/api/users/${id}/verify-seller`);
 
 export const banUser = (id: string) =>
-  client.post<ApiResponse<null>>(`/api/admin/users/${id}/ban`);
+  client.post<ApiResponse<null>>(`/api/users/${id}/ban`);
 
 export const unbanUser = (id: string) =>
-  client.post<ApiResponse<null>>(`/api/admin/users/${id}/unban`);
+  client.post<ApiResponse<null>>(`/api/users/${id}/unban`);
