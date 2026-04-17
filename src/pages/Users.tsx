@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from '../utils/toast';
 import { Search, Users as UsersIcon, Pencil } from 'lucide-react';
-import { getAllUsers, banUser, unbanUser, updateUser } from '../api/admin';
+import { getAllUsers, banUser, unbanUser, updateUser, verifyUser } from '../api/admin';
 import type { UpdateUserPayload } from '../api/admin';
 import type { AdminUser } from '../types';
 import { extractApiError } from '../utils/apiError';
@@ -206,6 +206,19 @@ export default function Users() {
     }
   };
 
+  const handleVerify = async (user: AdminUser) => {
+    setActionLoading(user.id + 'verify');
+    try {
+      await verifyUser(user.id);
+      toast.success(`${user.fullName} has been verified`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(extractApiError(err, 'Failed to verify user'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -368,6 +381,18 @@ export default function Users() {
                             <Pencil className="w-3.5 h-3.5" />
                             Edit
                           </Button>
+
+                          {/* Verify (Sellers only) */}
+                          {!user.isVerified && (
+                            <Button
+                              size="sm"
+                              variant="success"
+                              isLoading={actionLoading === user.id + 'verify'}
+                              onClick={() => handleVerify(user)}
+                            >
+                              Verify
+                            </Button>
+                          )}
 
                           {/* Ban / Unban */}
                           {!user.isBanned && (

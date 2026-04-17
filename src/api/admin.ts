@@ -36,8 +36,8 @@ export interface UpdateUserPayload {
 export const updateUser = (id: string, payload: UpdateUserPayload) =>
   client.put<ApiResponse<AdminUser>>(`/api/users/${id}`, payload);
 
-export const verifySeller = (id: string) =>
-  client.post<ApiResponse<null>>(`/api/users/${id}/verify-seller`);
+export const verifyUser = (id: string) =>
+  client.post<ApiResponse<null>>(`/api/users/${id}/verify`);
 
 export const banUser = (id: string) =>
   client.post<ApiResponse<null>>(`/api/users/${id}/ban`);
