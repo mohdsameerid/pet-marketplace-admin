@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { navigateTo } from '../utils/navigate';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -17,7 +18,7 @@ client.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && window.location.pathname !== '/login') {
       localStorage.removeItem('adminToken');
-      window.location.href = '/login';
+      navigateTo('/login');
     }
     return Promise.reject(error);
   }
