@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useNavigate } from 'react-router-dom';
 import { getMe } from '../api/auth';
 import { toast } from '../utils/toast';
+import { setNavigate } from '../utils/navigate';
 import type { AuthUser, LoginResponse } from '../types';
 
 interface AuthContextValue {
@@ -19,6 +20,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate]);
 
   useEffect(() => {
     const stored = localStorage.getItem('adminToken');
