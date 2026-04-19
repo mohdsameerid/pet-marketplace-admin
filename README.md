@@ -1,73 +1,137 @@
-# React + TypeScript + Vite
+# PetMarketplace — Admin Panel
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Internal admin dashboard for the PetMarketplace platform. Built with **React 19 + Vite** and **TypeScript**. Restricted to users with the **Admin** role — no public registration.
 
-Currently, two official plugins are available:
+**Live:** https://pet-marketplace-admin.netlify.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Technology |
+|---|---|
+| Framework | React 19 (SPA) |
+| Build Tool | Vite 8 |
+| Language | TypeScript |
+| Routing | React Router DOM 7 |
+| Styling | Tailwind CSS 4 |
+| Charts | Recharts |
+| HTTP | Axios |
+| Icons | Lucide React |
+| Notifications | React Hot Toast |
+| Auth | JWT (stored in localStorage as `adminToken`) |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Structure
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── pages/
+│   ├── Login.tsx            # Admin-only login
+│   ├── Dashboard.tsx        # Stats overview with charts
+│   ├── Listings.tsx         # All listings — filter, approve, reject
+│   ├── PendingListings.tsx  # Quick view of listings awaiting approval
+│   ├── Users.tsx            # All users — filter by role, ban/unban
+│   └── Sellers.tsx          # Sellers — verify seller status
+├── components/
+│   ├── layout/              # Sidebar, Navbar, Layout wrapper
+│   └── ui/                  # Reusable UI components
+├── api/
+│   ├── client.ts            # Axios instance + auth interceptor
+│   ├── auth.ts              # Login API call
+│   └── admin.ts             # All admin API calls
+├── context/                 # Auth context (admin token & user state)
+├── hooks/                   # Custom data-fetching hooks
+├── types/                   # Shared TypeScript types
+├── utils/                   # Formatting helpers
+├── App.tsx                  # Router & route definitions
+└── main.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Features
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Dashboard
+- Platform-wide stats: total users, buyers, sellers, verified sellers, banned users
+- Listing counts by status (Draft, Pending, Active, Rejected, Sold)
+- Total inquiries and favorites
+- Visual charts powered by Recharts
+
+### Listings Management
+- View all listings with status filter
+- **Pending Listings** quick-view for fast approval workflow
+- Approve a listing → moves to Active
+- Reject a listing → supply a rejection reason (shown to the seller)
+
+### User Management
+- View all registered users, filterable by role (Buyer / Seller / Admin)
+- Ban / unban any user
+- **Verify Seller** — mark a seller as verified after account review
+
+### Auth
+- Login with email + password; only accounts with role `Admin` are allowed in
+- JWT stored under `adminToken` key in localStorage
+- Token auto-injected on every API request via Axios interceptor
+- `401` responses clear the token and redirect to `/login`
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Create optimised production build |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
+
+---
+
+## Admin API Reference
+
+All requests go to `/api/admin/*` and require `Authorization: Bearer <token>`.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/dashboard` | Platform stats |
+| GET | `/api/admin/listings` | All listings (optional `?status=` filter) |
+| GET | `/api/admin/listings/pending` | Pending approval listings only |
+| POST | `/api/admin/listings/{id}/approve` | Approve a listing |
+| POST | `/api/admin/listings/{id}/reject` | Reject with `{ "reason": "..." }` body |
+| GET | `/api/admin/users` | All users (optional `?role=` filter) |
+| POST | `/api/admin/users/{id}/verify-seller` | Mark seller as verified |
+| POST | `/api/admin/users/{id}/ban` | Ban a user |
+| POST | `/api/admin/users/{id}/unban` | Unban a user |
+
+Standard API response envelope:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "Optional message",
+  "errors": []
+}
 ```
+
+---
+
+## Listing Status Flow
+
+```
+Draft
+  └─► PendingApproval  (seller submits)
+        ├─► Active      (admin approves)
+        └─► Rejected    (admin rejects with reason)
+```
+
+---
+
+## Deployment
+
+Deployed on **Netlify** with automatic builds from the main branch.
+
+- Build command: `npm run build`
+- Publish directory: `dist`
