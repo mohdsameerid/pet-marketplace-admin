@@ -349,13 +349,9 @@ export default function Users() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        {user.role === 'Seller' ? (
-                          <Badge variant={user.isVerified ? 'success' : 'default'}>
-                            {user.isVerified ? 'Verified' : 'Unverified'}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
+                        <Badge variant={user.isVerified ? 'success' : 'default'}>
+                          {user.isVerified ? 'Verified' : 'Unverified'}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
                         {user.isBanned ? (
